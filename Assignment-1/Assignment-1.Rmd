@@ -1,0 +1,36 @@
+---
+title: "Assignment-1"
+author: "Asher John"
+date: "10/3/2021"
+output: html_document
+---
+## The dataset iris was imported from R Studio. The following gives the summary and the head of the data. 
+
+
+
+```{r}
+data("iris")
+
+summary(iris)
+
+head(iris)
+
+summary(iris$Petal.Width)
+hist(iris$Petal.Width)
+
+## The variable Petal Width is transformed by log(10)
+
+summary(log10(iris$Petal.Width))
+hist(log10(iris$Petal.Width))
+
+## A scatter plot of the sepal length vs petal length is provided. 
+
+plot(iris$Sepal.Length)
+
+plot(x= iris$Sepal.Length, y= iris$Petal.Length)
+
+
+
+```
+
+
