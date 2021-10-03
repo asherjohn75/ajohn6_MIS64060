@@ -1,0 +1,84 @@
+---
+title: "Assignment_2"
+author: "Asher John"
+date: "10/1/2021"
+output: html_document
+---
+
+```{r}
+
+library(tidyverse)
+bank <- read_csv("UniversalBank.csv")
+
+str(bank)
+
+head(bank)
+
+Education <- dummyVars(~Education,bank)
+EduDV <- predict(Education,bank)
+
+
+
+```
+
+## Splitting Data
+
+```{r}
+library(dplyr)
+
+library(caret)
+
+bank
+
+Test_data <- data.frame("Age" = 40, "Experience" = 10, "Income" = 84, "Family" = 2, "CCAvg" = 2, "Education_1" = 0, "Education_2" = 1, "Education_3" = 0, "Mortgage" = 0, "Securities Account" = 0, "CD Account" = 0, "Online" = 1, "Credit Card" = 1.)
+
+head(Test_data)
+
+set.seed(15)
+
+Valid_Index <- createDataPartition(bank$Age, p=0.4, list=FALSE)
+Valid_data <- bank[Valid_Index,]
+Training_data <- bank[-Valid_Index,]
+
+
+summary(Training_data)
+summary(Valid_data)
+
+
+```
+
+## Normalizing Data
+
+```{r}
+library(caret)
+
+
+norm.values <- preProcess(Training_data[, c(2,3,4,6,7,9)], method=c("center", "scale"))
+
+normalized_training <- predict(norm.values, Training_data[, c(2,3,4,6,7,9)])
+
+normalized_valid <- predict(norm.values, Valid_data[, c(2,3,4,6,7,9)])
+
+normalized_test <- predict(norm.values, Test_data[, c(2,3,4,6,7,9)])
+
+summary(normalized_training)
+var(normalized_training)
+
+summary(normalized_valid)
+var(normalized_valid)
+```
+
+
+## Modeling K-NN
+
+```{r}
+library(class)
+
+Model <- knn(train = normalized_training, test = Test_data, 
+          cl = Training_data[, 10], k = 1, prob=TRUE)
+Model
+
+```
+
+
+
