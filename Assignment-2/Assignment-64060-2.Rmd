@@ -1,0 +1,258 @@
+---
+title: "Untitled"
+author: "Asher John"
+date: "10/3/2021"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r}
+library(dplyr)
+
+library(caret)
+
+bank_1 <- read.csv("UniversalBank.csv")
+
+head(bank_1)
+
+summary(bank_1)
+
+bank2 <- bank_1[,c(-1,-5)]
+
+summary(bank2)
+
+head(bank2)
+```
+
+
+```{r}
+bank2$Personal.Loan <-as.factor(bank2$Personal.Loan)
+
+bank2$Education <- as.factor(bank2$Education)
+
+Education_model <- dummyVars(~Education, bank2)
+
+EduDV <- predict(Education_model,bank2)
+
+bank2 <- cbind(bank2,EduDV)
+
+head(bank2)
+```
+
+
+```{r}
+head(bank2)
+bank_2 <- bank2[,-6]
+
+head(bank_2)
+
+str(bank_2)
+
+bank_new <- bank_2[, c(1,2,3,4,5,6,12,13,14,7,8,9,10,11)]
+
+bank_new
+
+```
+
+
+```{r}
+## Splitting Data
+
+set.seed(12)
+
+Valid_Index <- createDataPartition(bank_new$Personal.Loan, p=0.4, list=FALSE)
+
+Valid_bank <- bank_new[Valid_Index,]
+  
+Training_bank <- bank_new[-Valid_Index,]
+
+summary(Valid_bank)
+
+summary(Training_bank)
+
+
+```
+
+
+```{r}
+train.bank <- Training_bank
+vaild.bank <- Valid_bank
+head(train.bank)
+norm.values <- preProcess(Training_bank[, 1:9], method=c("center", "scale"))
+
+normalized_training <- predict(norm.values, Training_bank[, 1:9])
+
+normalized_valid <- predict(norm.values, Valid_bank[,  1:9])
+
+summary(normalized_training)
+var(normalized_training)
+
+summary(normalized_valid)
+var(normalized_valid)
+```
+
+
+```{r}
+library(class)
+
+Test_data <- data.frame("Age" = 40, "Experience" = 10, "Income" = 84, "Family" = 2, "CCAvg" = 2,  "Mortgage" = 0, "Education.1" = 0, "Education.2" = 1, "Education.3" = 0, "Securities Account" = 0, "CD Account" = 0, "Online" = 1, "Credit Card" = 1.)
+
+Test_data
+
+normal.test <- predict(norm.values, Test_data[, 1:9])
+
+normal.test
+```
+
+## Modeling KNN
+```{r}
+
+library(FNN)
+
+nn <- knn(train = normalized_training, test = normal.test, 
+          cl = train.bank[, 10], k = 1, prob=TRUE)
+nn
+
+
+
+
+```
+
+
+## Question 1. This customer will be classified as not taking personal loan according to the cutoff value of 0.5. 
+
+```{r}
+
+# initialize a data frame with two columns: k, and accuracy.
+Valid_bank
+library(caret)
+library(FNN)
+library(gmodels)
+
+#install.packages('e1071', dependencies=TRUE)
+
+library(e1071)
+accuracy.df <- data.frame(k = seq(1, 14, 1), accuracy = rep(0, 14))
+
+for(i in 1:15){
+knn.pred <- knn(normalized_training, normalized_valid, 
+                  cl = train.bank[, 10], k = i)
+  accuracy.df[i, 2] <- confusionMatrix(knn.pred, Valid_bank[, 10])$overall[1]
+}
+  
+accuracy.df
+
+plot(accuracy.df, type = "o")
+
+```
+## Question 2: The choice that balances overfitting and ignoring the predictor information is K=1
+
+## Question 3: The Confusion matrix is as follows:
+
+```{r}
+library(FNN)
+
+nn_2 <- knn(train = normalized_training, test = normalized_valid, 
+          cl = train.bank[, 10], k = 1, prob=TRUE)
+
+
+confusionMatrix(nn_2, Valid_bank[, 10])
+
+
+```
+
+
+
+
+## Question 4. This customer will also be classified as not taking personal loan, as is obvious from the following.
+
+```{r}
+Test_data2 <- data.frame("Age" = 40, "Experience" = 10, "Income" = 84, "Family" = 2, "CCAvg" = 2,  "Mortgage" = 0, "Education.1" = 0, "Education.2" = 1, "Education.3" = 0, "Securities Account" = 0, "CD Account" = 0, "Online" = 1, "Credit Card" = 1.)
+
+Test_data2
+
+normal.test2 <- predict(norm.values, Test_data2[, 1:9])
+
+normal.test2
+
+nn_3 <- knn(train = normalized_training, test = normal.test2, 
+          cl = train.bank[, 10], k = 1, prob=TRUE)
+
+nn_3
+
+
+```
+
+
+## Question 5
+
+## Splitting Data
+
+```{r}
+
+set.seed(43)
+
+Test_Index2 <- createDataPartition(bank2$Age, p=0.2, list=FALSE)
+
+Test_Data2 <- bank_new[Test_Index2, ]
+
+Trainvalid2 <- bank_new[-Test_Index2, ]
+
+## Now split the Trainvalid2 into Training and Validation data. I will 62.5 % of this as Training and remaining as validation.
+
+Train_Index2 <- createDataPartition(Trainvalid2$Age, p=0.625, list=FALSE)
+
+Training_2 <- Trainvalid2[Train_Index2, ]
+
+Validation_2 <- Trainvalid2[-Train_Index2, ]
+
+
+norm.values2 <- preProcess(Training_2[, 1:9], method=c("center", "scale"))
+
+normalized_training2 <- predict(norm.values2, Training_2[, 1:9])
+
+normalized_valid2 <- predict(norm.values2, Validation_2[, 1:9])
+
+normalized_test2 <- predict(norm.values2, Test_Data2[, 1:9])
+
+summary(normalized_training2)
+
+summary(normalized_valid2)
+
+## Following is the Confusion Matrix for the test data
+
+knn_test <- knn(train = normalized_training2, test = normalized_test2, 
+          cl = Training_2[, 10], k = 1, prob=TRUE)
+
+confusionMatrix(knn_test, Test_Data2[, 10])
+
+```
+
+## Following is the Confusion matrix for the training data
+
+```{r}
+
+knn_training <- knn(train = normalized_training2, test =  normalized_training2, 
+          cl = Training_2[, 10], k = 1, prob=TRUE)
+
+confusionMatrix(knn_training, Training_2[, 10])
+
+```
+
+## Following is the Confusion matrix for the Validation data
+
+```{r}
+ 
+
+knn_validation <- knn(train = normalized_training2, test =  normalized_valid2, 
+          cl = Training_2[, 10], k = 1, prob=TRUE)
+
+confusionMatrix(knn_validation, Validation_2[, 10])
+```
+## Question # 5: It is ver interesting to see the differences, the accuracy  on the test data is 97%,  on the training data is 100%, andon the validation data is 97.6%. The performance is according to the accuracy value of K=1 and that is understandable. The 1oo% performance of the training data is also obvious because the model was trained on the training data and it logically should have performed 100% on the training data. 
+
+
+
+
