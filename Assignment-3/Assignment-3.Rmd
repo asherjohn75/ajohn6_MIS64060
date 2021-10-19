@@ -1,0 +1,116 @@
+---
+title: "Assignment-3"
+author: "Asher John"
+date: "10/18/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## A. Please find the output below.
+## B. The probability of this customer accepting the loan is 84/892 i.e. 0.094 or 9.4%.
+## C. Please find the output below
+## answers for D all answers are approximations
+## i.     0.29 or 29%
+## ii.    0.62 or 62%
+## iii.   0.096 or 9.6%
+## iv.    0.298 or 29.8%
+## v.     0.599 or 59.9%
+## vi.    0.904 or 90.4%
+
+## E. Use the quantities computed above to compute the naive Bayes probability of P(Loan = 1 | CC = 1, Online = 1). Answer is given below:
+
+## (P(CC = 1 | Loan = 1)*P(Online = 1 | Loan = 1)*P(Loan = 1))/(p(CC=1)*P(Online=1))    
+
+## (.2916*.6215*.096)/(.601*.2973) =  0.0973712
+
+## F. The value obtained in E is 0.097 or 9.7% probability while value obtained in B is 0.094 or  9.4% probabilty of P(Loan = 1 | CC = 1, Online = 1).The value obtained in B is more accurate.
+
+## G. The entry wher CC = 1, Personal Loan = 1 and Online = 1 is needed for computing P(Loan = 1 | CC = 1, Online = 1). The value in E is .0973 but the valuse after examining the model output on training data is .096, i.e. is little different. 
+
+
+
+```{r}
+library(caret)
+library(dplyr)
+library(e1071)
+
+bank <- read.csv("UniversalBank.csv")
+str(bank)
+bank$Personal.Loan = as.factor(bank$Personal.Loan)
+bank$Online = as.factor(bank$Online)
+bank$CreditCard = as.factor(bank$CreditCard)
+
+
+```
+
+## Partitioning the data
+
+```{r}
+selected.var <- c(10,13,14)
+
+set.seed(13)
+
+Valid_Index <- createDataPartition(bank$Personal.Loan, p=0.4, list=FALSE)
+
+Valid_bank <- bank[Valid_Index, selected.var]
+  
+Training_bank <- bank[-Valid_Index, selected.var]
+
+summary(Valid_bank)
+
+summary(Training_bank)
+
+```
+
+## B. Creating a Pivot Table   
+ 
+```{r}
+library(reshape2)
+
+melt.bank <- melt(Training_bank,id=c("CreditCard","Personal.Loan"),variable= "Online")
+pivot.bank <- dcast(melt.bank,CreditCard+Personal.Loan~Online)
+pivot.bank
+ftable(pivot.bank, row.vars = 1:2, col.vars = 3)
+
+prop.table(ftable(pivot.bank, row.vars = 1:2, col.vars = 3), margin = 1)
+
+train.nb <- naiveBayes(Personal.Loan ~ ., data = Training_bank)
+
+train.nb
+
+```
+
+## C. Create two separate pivot tables for the training data. One will have Loan (rows) as a function of Online (columns) and the other will have Loan (rows) as a function of CC.
+
+```{r}
+melt.bank1 <-  melt(Training_bank,id= "Personal.Loan", variable= "Online")
+pivot.bank1 <- dcast(melt.bank1, Personal.Loan~Online)
+pivot.bank1
+table(Training_bank[, c(1,2)] )
+prop.table(table(Training_bank[, c(1,2)] ), margin = 1)
+
+melt.bank2 <-  melt(Training_bank,id= "Personal.Loan", variable= "CreditCard")
+pivot.bank2 <- dcast(melt.bank2, Personal.Loan~CreditCard)
+pivot.bank2
+table(Training_bank[, c(1,3)] )
+prop.table(table(Training_bank[, c(1,3)] ), margin = 1)
+
+table(Training_bank[, c(1)])
+prop.table(table(Training_bank[, c(1)]))
+
+``` 
+
+
+
+
+
+## G. Which of the entries in this table are needed for computing P(Loan = 1 | CC = 1, Online = 1)? Run naive Bayes on the data. Examine the model output on training data, and find the entry that corresponds to P(Loan = 1 | CC = 1, Online = 1). Compare this to the number you obtained in (E).
+
+```{r}
+bank.nb <- naiveBayes(Personal.Loan ~ ., data = bank[, c(10,13,14)])
+bank.nb
+
+
+```
+
