@@ -1,0 +1,117 @@
+---
+title: "Assignment-4"
+author: "Asher John"
+date: "10/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(tidyverse)
+library(factoextra) 
+library(ISLR)
+library(ggplot2)
+library(dplyr)
+
+set.seed(17)
+
+Pharma <- read.csv("Pharmaceuticals.csv")
+
+pharma1 <- Pharma[, c(3:11)]
+
+pharma1 <- scale(pharma1)
+
+```
+
+
+```{r}
+k4 <- kmeans(pharma1, centers = 4, nstart = 25)
+
+k4$centers
+
+k4$size
+```
+
+
+```{r}
+k4$cluster
+
+fviz_cluster(k4, data = pharma1)
+
+clusters <- k4$cluster
+
+```
+
+```{r}
+library(flexclust)
+set.seed(13)
+
+k5 <- kcca(pharma1, k=4, kccaFamily("kmedians"))
+k5
+
+
+```
+
+```{r}
+clusters_index <- predict(k5)
+dist(k5@centers)
+image(k5)
+points(pharma1, col=clusters_index, pch=19, cex=0.3)
+```
+
+```{r}
+library(tidyverse)
+library(factoextra)
+library(ISLR)
+set.seed(11)
+
+fviz_nbclust(pharma1, kmeans, method = "wss")
+
+fviz_nbclust(pharma1, kmeans, method = "silhouette")
+```
+
+
+# A.
+
+The numerical variables in data were scaled to avoid any discrepancies in the results. The cluster were formed using the K-Means clustering. I used K-Means as compared to K-Medians because the clusters in the K-means are more pronounced and have clear cut boundaries. Originally four clusters were made and then later both elbow chart and silhouette method were used to determine the optimal number of K. Both the methods returned 5 as the optimal number for K but I stuck with 4 as in 5 clusters between the groups variation was not as pronounced as it is in 4 clusters. 
+
+# B.
+
+The most important variable around which the clusters are divided is ROE. ROE shows the most variance between all four clusters. Another variable that shows variance between clusters is ROA.
+
+```{r}
+
+pharma2 <- cbind(Pharma, clusters)
+
+pharma2$clusters <- as.factor(pharma2$clusters)
+
+ggplot(pharma2, 
+       aes(x = Exchange, 
+           fill = clusters)) + 
+  geom_bar(position = "stack")
+
+ggplot(pharma2, 
+       aes(x = Location, 
+           fill = clusters)) + 
+  geom_bar(position = "stack")
+
+
+ggplot(pharma2, 
+       aes(x = Median_Recommendation, 
+           fill = clusters)) + 
+  geom_bar(position = "stack")
+
+```
+
+
+# C.
+
+There was a strong relationship between NYSE and cluster 1, 3, and 4. All mmebers of the clusters 1, 2, and 3 are from NYSE. This could be due to the fact that most of the observations in the data come from NYSE. Not a significant relationship was found between Locations and clusters though the US was found in the most of clusters as it is the most observed country in the data. There was no significant relationship between Median_Recommendation and clusters as all the recommendation were spread ove all clusters. 
+
+# D.
+
+It is very difficult to name these clusters while using any of the variable names.  Cluster 1 can be called PE_Ratio as it includes the greatest PE_Ratio. Cluster 2 can be called US as most of its observations are from the US. I can call cluster 3: NYSE as 8 cases of NYSE make the whole cluster. Cluster 4 can be called Market_Cap as it has the greatest value for Market_Cap of all the clusters. 
+
+
