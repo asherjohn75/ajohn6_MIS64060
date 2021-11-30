@@ -1,0 +1,228 @@
+---
+title: "Assignment-5"
+author: "Asher John"
+date: "11/24/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)  
+library(cluster)    
+library(factoextra) 
+library(dendextend)
+library(dplyr)
+set.seed(123)
+
+df <- read.csv("Cereals.csv")
+
+complete.cases(df)
+
+df <- df[complete.cases(df), ]
+```
+
+#### Preparing Data
+
+```{r}
+row.names(df) <- df[,1]
+
+df <- df[, -1]
+
+df1 <- df[, -(1:2)]
+
+df1 <- scale(df1)
+
+```
+
+#### Single linkage method
+
+```{r}
+
+distance <- dist(df1, method = "euclidean")
+
+hc1 <- hclust(distance, method = "single")
+
+plot(hc1, cex = 0.4, hang = -1)
+
+rect.hclust(hc1, k = 4, border = 1:8)
+
+```
+
+#### Complete linkage method
+
+```{r}
+hc2 <- hclust(distance, method = "complete")
+
+plot(hc2, cex = 0.4, hang = -1)
+
+rect.hclust(hc2, k = 4, border = 1:8)
+```
+
+#### Average linkage Method
+
+```{r}
+hc3 <- hclust(distance, method = "average")
+
+plot(hc3, cex = 0.4, hang = -1)
+
+rect.hclust(hc3, k = 8, border = 1:8)
+
+```
+
+#### Ward.D method
+
+```{r}
+hc4 <- hclust(distance, method = "ward.D")
+
+plot(hc4, cex = 0.4, hang = -1)
+
+rect.hclust(hc4, k = 4, border = 1:8)
+
+sub_grp <- cutree(hc4, k = 4)
+
+table(sub_grp)
+
+aggregate(df1, by = list(cluster = sub_grp), mean)
+
+hc4_new <- cbind(df1, sub_grp)
+
+```
+
+### Clustering by AGNES
+
+```{r}
+library(cluster)
+hc_single <- agnes(df1, method = "single")
+hc_single$ac
+
+hc_complete <- agnes(df1, method = "complete")
+hc_complete$ac
+
+hc_average <- agnes(df1, method = "average")
+hc_average$ac
+
+hc_ward <- agnes(df1, method = "ward")
+hc_ward$ac
+
+fviz_nbclust(df1, FUN = hcut, method = "silhouette")
+
+fviz_nbclust(df1, FUN = hcut, method = "wss")
+
+```
+
+
+## Q.1
+
+I will choose The "Ward" method as it shows the strongest clustering structure with a agglomerative coefficient of .904. it also makes my clusters more pronounced and distinct as compared to the other methods.
+
+## Q. 2
+
+I tried different ways ('wss' and 'silhouette') to pick the optimal number of clusters but I did not follow any of those recommendations. I will choose 4 clusters as it is a number that is not too big and not too small. If I pick a smaller number then clusters become too big. If I pick a bigger number than 4 then some clusters become too small and some become too big. Other reason for 4 is that this is the only number of clusters that shows a high variance between centroids of clusters.  In my opinion 4 clusters are good as it divides the data in a way that distinctions between clusters are obvious and they are at a distance of around 22 from one an other. 
+
+
+## Q. 3
+
+```{r}
+## splitting the data
+
+set.seed(13)
+
+data.a <- df1[1:37, ]
+
+data.b <- df1[38:74, ]
+
+## finding the centroids for the partition A
+
+distance1 <- dist(data.a, method = "euclidean")
+
+hc5 <- hclust(distance1, method = "ward.D")
+
+plot(hc5, cex = 0.4, hang = -1)
+
+rect.hclust(hc5, k = 4, border = 1:4)
+
+sub_grp1 <- cutree(hc5, k = 4)
+
+table(sub_grp1)
+
+centroid.a <- aggregate(data.a, by = list(cluster = sub_grp1), mean)
+
+centroid.a
+
+```
+
+```{r}
+## Assigning centroids from partition-A to partition-B of the original dataset.
+
+assign <- data.frame(cer=seq(1,37,1), cluster=rep(0,37))
+
+for (i in 1:37) {
+  q <- as.data.frame(rbind(centroid.a[, -1], data.b[i, ]))
+  m <- as.matrix(get_dist(q))
+  assign[i, 2] <- which.min(m[4,-4])
+  
+}
+
+rownames(assign) <- rownames(data.b)
+
+head(table(assign))
+
+table(assign$cluster == df1[38:74,1])
+
+```
+
+
+```{r}
+
+## Comparing centroids in a more manual fashion
+
+data.b <- df1[38:74, ]
+
+distance2 <- dist(data.b, method = "euclidean")
+
+hc6 <- hclust(distance1, method = "ward.D")
+
+plot(hc6, cex = 0.4, hang = -1)
+
+rect.hclust(hc6, k = 4, border = 1:4)
+
+sub_grp2 <- cutree(hc6, k = 4)
+
+table(sub_grp2)
+
+aggregate(data.a, by = list(cluster = sub_grp2), mean)
+```
+
+## Q.3
+
+I tried to assign the median valuses of the centroids in partition-A to the values in partition-B but the results hsow all 37 as a FALSE. I clustered partition-B using 'ward' method seperately and found that the values of the centroids are exactly the same in both partitions. This shows that cluster assignments are very consistent and stable. comparing the results of these partitions to cluster centroids of overall data shows that there are differences in the values of the centroids and this fact raises the questions about the stability and consistency of the constructs. 
+
+## Q. 4
+
+```{r}
+df2 <- df[, c(4,7)]
+
+d.2 <- dist(df2, method = "euclidean")
+
+hc.2 <- hclust(d.2, method = "ward.D")
+
+plot(hc.2, cex = 0.4, hang = -1)
+
+rect.hclust(hc.2, k = 5, border = 1:5)
+
+sub_grp3 <- cutree(hc.2, k = 5)
+
+table(sub_grp3)
+
+aggregate(df2, by = list(cluster = sub_grp3), mean)
+  
+
+```
+## Q. 4.
+
+It depends on how one defines "healthy cereal". I will define my "healthy cereal" as high in protein and fiber and will make my clusters based only on these two.I will not normalize the data as I want to see the true amount of  'protein' and 'fiber' in the cereals. Clustering based on protein and fiber was done and 8 clusters were created. Cluster-5 was chosen for the school, this cluster has 5 cereals (for five days of the week!) and each cereal has 3 grams of protein and 5-6 grams of fiber. I did not choose any other of the clusters because they did not have a good balance of protein and fiber. Either they were high on protein and low on fiber or vice versa. 
