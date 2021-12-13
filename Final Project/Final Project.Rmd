@@ -1,0 +1,154 @@
+---
+title: "final"
+author: "Asher John"
+date: "11/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(factoextra) 
+library(ISLR)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(caret)
+library(ROCR)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+library(e1071)
+
+set.seed(17)
+
+## The data is prepared for the analysis
+
+df.heart <- read.csv("heart.csv")
+
+factors <- c("Sex", "ExerciseAngina", "HeartDisease", "FastingBS", "RestingECG", "ST_Slope", "ChestPainType")
+df.heart[factors] <- lapply(df.heart[factors],factor)
+
+str(df.heart)
+```
+
+```{r}
+## Data are divided into training and test to cross validate and  check the accuracy of the model. 
+
+Valid_Index <- createDataPartition(df.heart$HeartDisease, p=0.6, list=FALSE)
+
+train.hd <- df.heart[Valid_Index, ]
+  
+test.hd <- df.heart[-Valid_Index, ]
+
+train.1 <- glm(HeartDisease ~ ., data = train.hd, family = "binomial")
+
+summary(train.1)
+
+final.train <- glm(HeartDisease ~ Age + Sex + ChestPainType + Cholesterol + FastingBS + ExerciseAngina + Oldpeak + ST_Slope, data = train.hd, family = "binomial")
+
+summary(final.train)
+
+## Parameters are used from the training data to predict the heart disease from the test data.
+
+model.1 <- predict(final.train, test.hd, type = "response")
+
+confusion <- table(ActualValue = test.hd$HeartDisease, PredictedValue = model.1>0.5)
+
+confusion
+
+table.1 <- tab_model(final.train)
+
+table.1
+```
+
+```{r}
+## To compare the results of the regression model from training data analysis is conducted on the test data.
+logistic.test <- glm(HeartDisease ~ Age + Sex + ChestPainType + Cholesterol + FastingBS + ExerciseAngina + Oldpeak + ST_Slope, data = test.hd, family = "binomial")
+
+summary(logistic.test)
+
+table.2 <- tab_model(logistic.test)
+
+table.2
+```
+
+
+```{r}
+## Models are built and refined for the final model in logistic regresson analysis. 
+
+model.2 <-  glm(HeartDisease ~.,  data = df.heart, family = "binomial")
+
+summary(model.2)
+
+table.3 <- tab_model(model.2)
+
+final.regression <- glm(HeartDisease ~ Age + Sex + ChestPainType + Cholesterol + FastingBS + ExerciseAngina + Oldpeak + ST_Slope, data = df.heart, family = "binomial")
+
+summary(final.regression)
+
+table <- tab_model(final.regression)
+
+table
+
+predicted.data <- data.frame(
+  probability.of.hd=final.regression$fitted.values,
+  hd=df.heart$HeartDisease)
+
+predicted.data <- predicted.data[
+  order(predicted.data$probability.of.hd, decreasing=FALSE),]
+predicted.data$rank <- 1:nrow(predicted.data)
+
+ggplot(data=predicted.data, aes(x=rank, y=probability.of.hd)) +
+  geom_point(aes(color=hd), alpha=1, shape=4, stroke=2) +
+  xlab("Index") +
+  ylab("Predicted probability of getting heart disease")
+
+
+```
+
+
+```{r}
+## A naive Bayes model is created to validate and ratify the accuracy of the model built by logistic regression.  
+
+train.heart <- naiveBayes(HeartDisease ~ ., data = train.hd[, c(1,2,3,5,6,9,10,11,12)])
+
+test <- predict(train.heart, test.hd)
+
+confusion2 <- table(ActualValue = test.hd$HeartDisease, PredictedValue = test)
+
+confusion2
+
+```
+
+```{r}
+## To graphically present the association between heart disease and important independent variables histograms are created. 
+ggplot(df.heart, 
+       aes(x = Sex, 
+           fill = HeartDisease)) + 
+  geom_bar(position = "stack")
+
+ggplot(df.heart, 
+       aes(x = ExerciseAngina, 
+           fill = HeartDisease)) + 
+  geom_bar(position = "stack")
+
+ggplot(df.heart, 
+       aes(x = ChestPainType, 
+           fill = HeartDisease)) + 
+  geom_bar(position = "stack")
+
+ggplot(df.heart, 
+       aes(x = FastingBS, 
+           fill = HeartDisease)) + 
+  geom_bar(position = "stack")
+
+ggplot(df.heart, 
+       aes(x = ST_Slope, 
+           fill = HeartDisease)) + 
+  geom_bar(position = "stack")
+```
+
